@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MySmartBand - Core Hardware Interface</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <style>
+        /* Premium Cyber-Purp Deep Base */
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: radial-gradient(circle at 50% 30%, #160a26 0%, #05030e 75%, #020104 100%);
+        }
+
+        /* Glassmorphic Cyber Paneling */
+        .glass-panel {
+            background: rgba(13, 7, 25, 0.78);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(168, 85, 247, 0.22);
+        }
+
+        /* Glowing Microchip Enclosures */
+        .ic-housing {
+            background: linear-gradient(135deg, #170e30 0%, #0c061d 100%);
+            border: 2px solid rgba(168, 85, 247, 0.42);
+            box-shadow: 0 0 25px rgba(147, 51, 234, 0.25), inset 0 0 15px rgba(168, 85, 247, 0.1);
+            position: relative;
+        }
+        
+        .ic-housing::before {
+            content: '';
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: rgba(168, 85, 247, 0.6);
+            box-shadow: 0 0 6px rgba(168, 85, 247, 1);
+        }
+
+        /* Ambient PCB Core Light */
+        .pcb-glow {
+            position: absolute;
+            width: 1000px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.14) 0%, rgba(0, 0, 0, 0) 80%);
+            top: 45%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* User-Injected Liquid Dynamic Button Styling (.btn-90) */
+        .btn-90, .btn-90 *, .btn-90 :after, .btn-90 :before, .btn-90:after, .btn-90:before {
+            border: 0 solid;
+            box-sizing: border-box;
+        }
+        .btn-90 {
+            -webkit-tap-highlight-color: transparent;
+            -webkit-appearance: button;
+            background-color: #000;
+            background-image: none;
+            color: #fff;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 100%;
+            font-weight: 900;
+            line-height: 1.5;
+            margin: 0;
+            -webkit-mask-image: -webkit-radial-gradient(#000, #fff);
+            padding: 0;
+        }
+        .btn-90:disabled { cursor: default; }
+        .btn-90:-moz-focusring { outline: auto; }
+        .btn-90 [hidden] { display: none; }
+        
+        .btn-90 {
+            --size: 56px;
+            background: #4c1d95; 
+            border-radius: 999px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            -webkit-mask-image: none;
+            padding: 24px 0;
+            position: relative;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            overflow: hidden;
+            border: 1px solid rgba(168, 85, 247, 0.5);
+            box-shadow: 0 10px 30px rgba(147, 51, 234, 0.35);
+            transition: box-shadow 0.3s ease;
+        }
+        .btn-90:hover {
+            box-shadow: 0 15px 35px rgba(168, 85, 247, 0.6);
+        }
+        .btn-90 span {
+            font-weight: 900;
+            mix-blend-mode: difference;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .btn-90 .blobs {
+            filter: url(#goo);
+            inset: 0;
+            pointer-events: none;
+            position: absolute;
+            z-index: 1;
+        }
+        .btn-90 .blobs:after, .btn-90 .blobs:before {
+            background: #d8b4fe; 
+            border-radius: 50%;
+            content: "";
+            height: var(--size);
+            position: absolute;
+            top: calc(50% - var(--size) / 2);
+            transition: transform 0.6s cubic-bezier(0.76, 0, 0.24, 1);
+            width: var(--size);
+        }
+        .btn-90 .blobs:before { left: 100%; }
+        .btn-90 .blobs:after { right: 100%; }
+        .btn-90:hover .blobs:before { transform: translateX(-140%); }
+        .btn-90:hover .blobs:after { transform: translateX(140%); }
+    </style>
+</head>
+<body class="text-slate-100 min-h-screen flex flex-col relative overflow-x-hidden">
+
+    <svg xmlns="http://www.w3.org/2000/svg" version="1.1" class="hidden">
+        <defs>
+            <filter id="goo">
+                <feGaussianBlur in="SourceGraphic" stdDeviation="10" result="blur" />
+                <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -7" result="goo" />
+                <feBlend in="SourceGraphic" in2="goo" />
+            </filter>
+        </defs>
+    </svg>
+
+    <div class="absolute inset-0 pointer-events-none opacity-[0.25] z-0 flex items-center justify-center overflow-hidden select-none p-2">
+        <svg class="w-full h-full min-w-[1400px]" viewBox="0 0 1400 900" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <linearGradient id="pcbTraceGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#c084fc" />
+                    <stop offset="100%" stop-color="#6366f1" />
+                </linearGradient>
+            </defs>
+
+            <g fill="none" stroke="url(#pcbTraceGradient)" stroke-linecap="round" stroke-linejoin="round">
+                
+                <rect x="80" y="80" width="75" height="75" rx="6" stroke-width="2"/>
+                <path d="M 50,95 L 80,95 M 50,115 L 80,115 M 50,135 L 80,135" stroke-width="1.5"/>
+                <path d="M 155,95 L 185,95 M 155,115 L 185,115 M 155,135 L 185,135" stroke-width="1.5"/>
+                <path d="M 95,50 L 95,80 M 115,50 L 115,80 M 135,50 L 135,80" stroke-width="1.5"/>
+                
+                <path d="M 40,220 L 140,220 L 195,275 L 350,275 L 410,335 L 410,480" stroke-width="1.5" />
+                <path d="M 40,232 L 135,232 L 187,284 L 344,284 L 400,340 L 400,480" stroke-width="1.2" />
+                <path d="M 40,244 L 130,244 L 179,293 L 338,293 L 390,345 L 390,480" stroke-width="1.0" />
+                <path d="M 40,256 L 125,256 L 171,302 L 332,302 L 380,350 L 380,480" stroke-width="0.8" />
+
+                <path d="M 185,115 L 280,115 L 340,175 L 520,175 L 580,235 L 580,320" stroke-width="1.5" />
+                <path d="M 115,155 L 115,200 L 155,240 L 155,360 L 210,415 L 210,500" stroke-width="1.2" />
+                
+                <rect x="660" y="70" width="90" height="90" rx="8" stroke-width="2"/>
+                <path d="M 610,90 L 660,90 M 610,110 L 660,110 M 610,130 L 660,130 M 610,150 L 660,150" stroke-width="1.5"/>
+                <path d="M 750,90 L 800,90 M 750,110 L 800,110 M 750,130 L 800,130 M 750,150 L 800,150" stroke-width="1.5"/>
+                <path d="M 705,160 L 705,240 L 780,315 L 950,315" stroke-width="1.5"/>
+
+                <path d="M 1360,240 L 1240,240 L 1180,300 L 1020,300 L 960,360 L 960,480" stroke-width="1.6"/>
+                <path d="M 1360,252 L 1245,252 L 1188,309 L 1025,309 L 970,369 L 970,480" stroke-width="1.2"/>
+                <path d="M 1360,264 L 1250,264 L 1196,318 L 1030,318 L 980,378 L 980,480" stroke-width="0.9"/>
+
+                <rect x="1150" y="90" width="80" height="80" rx="6" stroke-width="2"/>
+                <path d="M 1150,130 L 1090,130 L 1020,200 L 1020,260" stroke-width="1.5"/>
+
+                <path d="M 50,550 L 180,550 L 240,610 L 450,610 L 510,550 L 750,550" stroke-width="1.5"/>
+                <path d="M 50,565 L 175,565 L 232,622 L 445,622 L 502,565 L 750,565" stroke-width="1.0"/>
+
+                <path d="M 150,820 L 320,820 L 400,740 L 750,740 L 810,800 L 1250,800" stroke-width="2" />
+                <path d="M 170,835 L 310,835 L 388,757 L 745,757 L 798,810 L 1250,810" stroke-width="1" />
+
+                <g fill="url(#pcbTraceGradient)" stroke="none">
+                    <circle cx="350" cy="275" r="4" />
+                    <circle cx="520" cy="175" r="4" />
+                    <circle cx="950" cy="315" r="4.5" />
+                    <circle cx="1020" cy="260" r="4" />
+                </g>
+            </g>
+        </svg>
+    </div>
+    
+    <div class="pcb-glow"></div>
+
+    <nav class="glass-panel sticky top-0 z-50 px-6 py-4 shadow-xl border-b border-purple-500/10">
+        <div class="max-w-4xl mx-auto flex justify-between items-center">
+            
+            <div class="flex items-center space-x-3">
+                <div class="bg-gradient-to-tr from-purple-600 to-indigo-500 p-2.5 rounded-2xl shadow-lg shadow-purple-500/20">
+                    <span class="text-xl">⚡</span>
+                </div>
+                <div>
+                    <h1 class="text-lg font-extrabold bg-gradient-to-r from-purple-400 to-indigo-300 bg-clip-text text-transparent tracking-tight">MySmartBand</h1>
+                    <p class="text-[10px] text-purple-400 font-bold tracking-widest uppercase">Hardware Core Processing Unit</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center space-x-3 bg-purple-950/40 px-4 py-2 rounded-2xl border border-purple-500/10 shadow-inner">
+                <span id="weatherIcon" class="text-2xl">🌤️</span>
+                <div class="text-right">
+                    <div class="flex items-center justify-end text-xs font-semibold text-purple-300">
+                        📍 <input id="cityInput" type="text" value="Mumbai" class="bg-transparent font-bold text-slate-200 focus:outline-none focus:border-b focus:border-purple-400 w-24 ml-1 text-right cursor-pointer" title="Type city name and hit Enter" />
+                    </div>
+                    <p class="text-sm font-black text-slate-100"><span id="weatherTemp">28</span>°C <span id="weatherDesc" class="text-[10px] font-medium text-slate-400 ml-1">Syncing...</span></p>
+                </div>
+            </div>
+
+        </div>
+    </nav>
+
+    <main class="max-w-4xl w-full mx-auto p-6 space-y-6 flex-grow flex flex-col justify-center relative z-10">
+        
+        <div class="glass-panel p-5 rounded-3xl shadow-2xl relative overflow-hidden flex justify-between items-center">
+            <div>
+                <p class="text-xs font-bold text-purple-400 tracking-wider uppercase">System Operator,</p>
+                <div class="flex items-center space-x-2 mt-1">
+                    <h2 class="text-2xl font-black text-slate-100 tracking-tight">V</h2>
+                    <button class="bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1 hover:bg-purple-500/40 transition">
+                        ✏️ Mod
+                    </button>
+                </div>
+                <p class="text-xs text-purple-400/70 mt-1 font-mono tracking-tight" id="liveDate">Saturday, 13 June 2026</p>
+            </div>
+            <div class="text-right font-mono text-[10px] text-slate-500 hidden sm:block">
+                <p>SYS_STATUS: ACTIVE</p>
+                <p>BUS_SPEED: 115200 BAUD</p>
+            </div>
+        </div>
+
+        <div class="flex flex-col items-center space-y-4">
+            <div class="w-full max-w-md">
+                <button id="connectBtn" class="btn-90 w-full">
+                    <span>🔵 Mount Serial Device</span>
+                    <div class="blobs"></div>
+                </button>
+            </div>
+            <span id="statusBadge" class="bg-slate-950/80 border border-purple-500/20 font-mono text-purple-400 text-[10px] px-4 py-1.5 rounded-md tracking-wide shadow-md">
+                STBY // DISCONNECTED_AWAITING_PORT
+            </span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 pt-2">
+            
+            <div class="relative p-2">
+                <div class="absolute inset-y-12 -left-2 w-2 flex flex-col justify-between h-32 py-1 z-0">
+                    <div class="h-2 w-3 bg-slate-400 rounded-sm border-b border-slate-600"></div>
+                    <div class="h-2 w-3 bg-slate-400 rounded-sm border-b border-slate-600"></div>
+                    <div class="h-2 w-3 bg-slate-400 rounded-sm border-b border-slate-600"></div>
+                </div>
+                <div class="absolute inset-y-12 -right-2 w-2 flex flex-col justify-between h-32 py-1 z-0">
+                    <div class="h-2 w-3 bg-slate-400 rounded-sm border-b border-slate-600"></div>
+                    <div class="h-2 w-3 bg-slate-400 rounded-sm border-b border-slate-600"></div>
+                    <div class="h-2 w-3 bg-slate-400 rounded-sm border-b border-slate-600"></div>
+                </div>
+                
+                <div class="ic-housing p-6 rounded-2xl relative z-10 flex flex-col justify-between h-48 group">
+                    <div class="flex justify-between items-start">
+                        <div class="space-y-1">
+                            <span class="text-[10px] font-mono text-purple-400 bg-purple-950/60 px-2 py-0.5 rounded border border-purple-500/20">IC-01 // PEDOMETER</span>
+                            <h3 class="text-xs font-bold tracking-wider text-slate-300 uppercase mt-2">Steps Accounted</h3>
+                        </div>
+                        <span class="text-xl opacity-60 group-hover:opacity-100 transition-opacity">🏃‍♂️</span>
+                    </div>
+                    <div>
+                        <p id="stepDisplay" class="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-slate-100 to-purple-200 tracking-tight">0</p>
+                        <p class="text-[11px] font-mono text-slate-400 mt-1">accumulated_pulses</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="relative p-2">
+                <div class="absolute inset-y-12 -left-2 w-2 flex flex-col justify-between h-32 py-1 z-0">
+                    <div class="h-2 w-3 bg-slate-400 rounded-sm border-b border-slate-600"></div>
+                    <div class="h-2 w-3 bg-slate-400 rounded-sm border-b border-slate-600"></div>
+                    <div class="h-2 w-3 bg-slate-400 rounded-sm border-b border-slate-600"></div>
+                </div>
+                <div class="absolute inset-y-12 -right-2 w-2 flex flex-col justify-between h-32 py-1 z-0">
+                    <div class="h-2 w-3 bg-slate-400 rounded-sm border-b border-slate-600"></div>
+                    <div class="h-2 w-3 bg-slate-400 rounded-sm border-b border-slate-600"></div>
+                    <div class="h-2 w-3 bg-slate-400 rounded-sm border-b border-slate-600"></div>
+                </div>
+                
+                <div class="ic-housing p-6 rounded-2xl relative z-10 flex flex-col justify-between h-48 group">
+                    <div class="flex justify-between items-start">
+                        <div class="space-y-1">
+                            <span class="text-[10px] font-mono text-purple-400 bg-purple-950/60 px-2 py-0.5 rounded border border-purple-500/20">IC-02 // BIOMETRIC</span>
+                            <h3 class="text-xs font-bold tracking-wider text-slate-300 uppercase mt-2">Heart Rate Frequency</h3>
+                        </div>
+                        <span class="text-xl text-rose-500 animate-pulse">❤️</span>
+                    </div>
+                    <div>
+                        <p id="bpmDisplay" class="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-slate-100 to-purple-200 tracking-tight">--</p>
+                        <p class="text-[11px] font-mono text-slate-400 mt-1">beats_per_minute</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="glass-panel p-6 rounded-3xl shadow-xl space-y-4">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center space-x-2">
+                    <span class="text-xs font-mono text-purple-400">REG_VOLTAGE:</span>
+                    <h3 class="text-xs font-bold tracking-wider text-slate-300 uppercase">Step Registry Goal</h3>
+                </div>
+                <div class="text-xs font-mono text-slate-400">
+                    LIMIT: <input id="goalInput" type="number" value="10000" class="bg-purple-950/80 font-bold text-purple-400 focus:outline-none border border-purple-500/30 rounded-lg px-2 py-1 w-24 text-center" />
+                </div>
+            </div>
+            
+            <div class="space-y-2">
+                <div class="flex justify-between items-baseline">
+                    <p class="text-3xl font-black text-slate-100 tracking-tight"><span id="progressCurrent">0</span> <span class="text-xs font-mono text-slate-500">/ 10,000 steps</span></p>
+                    <span id="progressPercent" class="text-sm font-mono font-black text-purple-400">0%</span>
+                </div>
+                <div class="w-full h-3 bg-slate-950/80 rounded-full overflow-hidden border border-purple-500/10 p-[2px]">
+                    <div id="progressBar" class="h-full rounded-full bg-gradient-to-r from-purple-500 via-purple-400 to-indigo-500 shadow-lg shadow-purple-500/40 transition-all duration-500" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="glass-panel p-6 rounded-3xl shadow-xl space-y-4">
+            <div class="flex justify-between items-center border-b border-purple-500/10 pb-3">
+                <div class="flex items-center space-x-2">
+                    <span class="text-xs font-mono text-purple-400">TELEMETRY //</span>
+                    <h3 class="text-xs font-bold tracking-wider text-slate-300 uppercase">Weekly Performance Telemetry</h3>
+                </div>
+                <span class="text-[10px] font-mono text-slate-500">Pan chart to change date</span>
+            </div>
+
+            <div class="relative w-full h-56 bg-slate-950/40 rounded-xl border border-purple-500/5 p-4 flex">
+                
+                <div class="h-[150px] text-[9px] font-mono text-slate-500 flex flex-col justify-between text-right w-8 pr-2 select-none">
+                    <p>12K</p>
+                    <p>10K</p>
+                    <p>8K</p>
+                    <p>6K</p>
+                    <p>4K</p>
+                    <p>2K</p>
+                    <p>0</p>
+                </div>
+
+                <div class="flex-grow h-[150px] relative border-b border-slate-800 flex items-end justify-between px-2 sm:px-6">
+                    
+                    <div class="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-40">
+                        <div class="w-full border-t border-purple-500/10 border-dash border-dashed"></div>
+                        <div class="w-full border-t border-purple-400/20 relative">
+                            <span class="absolute right-0 -top-2.5 text-[8px] font-mono text-purple-400/60 bg-slate-950 px-1">Goal</span>
+                        </div>
+                        <div class="w-full border-t border-purple-500/10 border-dash border-dashed"></div>
+                        <div class="w-full border-t border-purple-500/10 border-dash border-dashed"></div>
+                        <div class="w-full border-t border-purple-500/10 border-dash border-dashed"></div>
+                        <div class="w-full border-t border-purple-500/10 border-dash border-dashed"></div>
+                        <div class="w-full"></div>
+                    </div>
+
+                    <div class="w-8 flex flex-col items-center justify-end h-full z-10">
+                        <div id="bar-mon" class="w-5 sm:w-7 bg-slate-700/50 rounded-t-full transition-all duration-500 relative group" style="height: 35%;">
+                            <span class="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-mono bg-slate-950 px-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">4.2K</span>
+                        </div>
+                    </div>
+
+                    <div class="w-8 flex flex-col items-center justify-end h-full z-10">
+                        <div id="bar-tue" class="w-5 sm:w-7 bg-slate-700/50 rounded-t-full transition-all duration-500 relative group" style="height: 65%;">
+                            <span class="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-mono bg-slate-950 px-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">7.8K</span>
+                        </div>
+                    </div>
+
+                    <div class="w-8 flex flex-col items-center justify-end h-full z-10">
+                        <div id="bar-wed" class="w-5 sm:w-7 bg-slate-700/50 rounded-t-full transition-all duration-500 relative group" style="height: 51%;">
+                            <span class="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-mono bg-slate-950 px-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">6.1K</span>
+                        </div>
+                    </div>
+
+                    <div class="w-8 flex flex-col items-center justify-end h-full z-10">
+                        <div id="bar-thu" class="w-5 sm:w-7 bg-slate-700/50 rounded-t-full transition-all duration-500 relative group" style="height: 78%;">
+                            <span class="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-mono bg-slate-950 px-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">9.4K</span>
+                        </div>
+                    </div>
+
+                    <div class="w-8 flex flex-col items-center justify-end h-full z-10">
+                        <div id="bar-fri" class="w-5 sm:w-7 bg-slate-700/50 rounded-t-full transition-all duration-500 relative group" style="height: 43%;">
+                            <span class="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-mono bg-slate-950 px-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">5.2K</span>
+                        </div>
+                    </div>
+
+                    <div class="w-8 flex flex-col items-center justify-end h-full z-10">
+                        <div id="bar-sat" class="w-5 sm:w-7 bg-purple-500 rounded-t-full transition-all duration-300 relative group" style="height: 0%;">
+                            <span id="label-sat" class="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-mono bg-slate-950 px-1 rounded opacity-100 font-bold text-purple-300">0</span>
+                        </div>
+                    </div>
+
+                    <div class="w-8 flex flex-col items-center justify-end h-full z-10">
+                        <div id="bar-sun" class="w-5 sm:w-7 bg-slate-800/40 rounded-t-full transition-all duration-500 relative group" style="height: 0%;">
+                            <span class="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-mono bg-slate-950 px-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">0</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="grid grid-cols-7 pl-10 pr-4 sm:pr-8 text-center font-mono font-bold text-[10px] text-purple-400/80 uppercase tracking-wider select-none">
+                <div>Mon</div>
+                <div>Tue</div>
+                <div>Wed</div>
+                <div>Thu</div>
+                <div>Fri</div>
+                <div class="text-purple-300 font-black">Sat</div>
+                <div>Sun</div>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        const connectBtn = document.getElementById('connectBtn');
+        const statusBadge = document.getElementById('statusBadge');
+        const stepDisplay = document.getElementById('stepDisplay');
+        const bpmDisplay = document.getElementById('bpmDisplay');
+        const progressCurrent = document.getElementById('progressCurrent');
+        const progressPercent = document.getElementById('progressPercent');
+        const progressBar = document.getElementById('progressBar');
+        const goalInput = document.getElementById('goalInput');
+        const cityInput = document.getElementById('cityInput');
+        const weatherTemp = document.getElementById('weatherTemp');
+        const weatherDesc = document.getElementById('weatherDesc');
+        const weatherIcon = document.getElementById('weatherIcon');
+        
+        // Bar chart elements
+        const barMon = document.getElementById('bar-mon');
+        const barTue = document.getElementById('bar-tue');
+        const barWed = document.getElementById('bar-wed');
+        const barThu = document.getElementById('bar-thu');
+        const barFri = document.getElementById('bar-fri');
+        const barSat = document.getElementById('bar-sat');
+        const labelSat = document.getElementById('label-sat');
+
+        let port;
+        let reader;
+        let keepReading = true;
+        let inputBuffer = "";
+
+        // Raw historical setup values (Base 12k scale constraints)
+        const pastStepsArr = [4200, 7800, 6100, 9400, 5200];
+
+        // Weather Engine sync pipeline
+        async function fetchLiveWeather(cityName) {
+            try {
+                weatherDesc.innerText = "Syncing...";
+                const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityName)}&count=1&language=en&format=json`;
+                const geoResponse = await fetch(geoUrl);
+                const geoData = await geoResponse.json();
+                if (!geoData.results || geoData.results.length === 0) { weatherDesc.innerText = "Unknown City"; return; }
+
+                const { latitude, longitude } = geoData.results[0];
+                const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weather_code`;
+                const weatherResponse = await fetch(weatherUrl);
+                const weatherData = await weatherResponse.json();
+
+                if (weatherData && weatherData.current) {
+                    const temp = Math.round(weatherData.current.temperature_2m);
+                    const code = weatherData.current.weather_code;
+                    let conditionText = "Clear"; let iconEmoji = "☀️";
+                    if (code >= 1 && code <= 3) { conditionText = "Cloudy"; iconEmoji = "🌤️"; }
+                    else if (code >= 45 && code <= 48) { conditionText = "Foggy"; iconEmoji = "🌫️"; }
+                    else if (code >= 51 && code <= 67) { conditionText = "Raining"; iconEmoji = "🌧️"; }
+                    weatherTemp.innerText = temp; weatherDesc.innerText = conditionText; weatherIcon.innerText = iconEmoji;
+                }
+            } catch (error) { weatherDesc.innerText = "Offline"; }
+        }
+
+        cityInput.addEventListener('keypress', function (e) { if (e.key === 'Enter') { this.blur(); fetchLiveWeather(this.value.trim()); } });
+        fetchLiveWeather(cityInput.value);
+
+        // Compute goals and balance bar charts styling configurations
+        function updateGoalProgress(currentSteps) {
+            const targetGoal = parseInt(goalInput.value) || 10000;
+            step
